@@ -1,0 +1,57 @@
+@startuml Daily Request
+
+hide footbox
+skinparam sequence {
+
+ArrowColor #AAAAAA
+ActorBorderColor #AAAAAA
+LifeLineBorderColor #AAAAAA
+LifeLineBackgroundColor #AAAAAA
+
+ParticipantBorderColor #AAAAAA
+ParticipantBackgroundColor white
+
+
+
+}
+skinparam NoteBorderColor #AAAAAA
+skinparam NoteBackgroundColor white
+skinparam DatabaseBorderColor #AAAAAA
+skinparam DatabaseBackgroundColor white
+
+participant "Automated Script" 
+participant DailyWebCrawlerHandler 
+participant FetchWrapper 
+participant RequestWrapper 
+participant JSONParser 
+participant gzipWrapper
+database DB
+
+"Automated Script" -> DailyWebCrawlerHandler ++ : init
+"Automated Script" -> DailyWebCrawlerHandler : get_data
+
+DailyWebCrawlerHandler -> FetchWrapper ++ : init
+FetchWrapper -> RequestWrapper ++ : init
+DailyWebCrawlerHandler -> FetchWrapper : get data by request type
+FetchWrapper -> DailyWebCrawlerHandler : return  data
+
+FetchWrapper -> RequestWrapper : get all events
+RequestWrapper -> FetchWrapper : return events
+
+note left : loops  by "id" 
+FetchWrapper -> JSONParser : get ids 
+JSONParser -> FetchWrapper : return ids list
+FetchWrapper -> RequestWrapper : make rest requests
+RequestWrapper -> FetchWrapper : return json file
+
+
+
+RequestWrapper -> FetchWrapper -- : close
+FetchWrapper -> DailyWebCrawlerHandler -- : close
+
+DailyWebCrawlerHandler -> gzipWrapper ++: save json files as gzip to hd
+gzipWrapper -> DB : write
+gzipWrapper -> DailyWebCrawlerHandler --
+DailyWebCrawlerHandler ->  "Automated Script" -- : close 
+
+@enduml
